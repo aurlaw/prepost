@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "prepost-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-20",
+  // No account_id — use `wrangler login` or CLOUDFLARE_ACCOUNT_ID in your shell.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "prepost-api.aurlaw.dev", "custom_domain": true }],
+  "observability": { "enabled": true },
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "prepost-media" }],
+  "kv_namespaces": [{ "binding": "STATE", "id": "baa1ae92eebf4ebe8efacc925ba37179" }],
+  // Non-secret values only. Secrets go in `wrangler secret put` / .dev.vars.
+  "vars": { "MEDIA_BASE_URL": "https://prepost-media.aurlaw.dev" }
+}

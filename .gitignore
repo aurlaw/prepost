@@ -1,3 +1,25 @@
+# ---- Pre Post ----
+# macOS
+.DS_Store
+# Worker
+node_modules/
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+# Secrets / keys
+*.p8
+*.pem
+# Spike / HTTP client
+http-client.private.env.json
+*.http
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+ios/Configs/Local.xcconfig
+
+# ---- GitHub Swift template ----
 # Xcode
 #
 # gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
@@ -60,3 +82,4 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+ios/PrePost/Configs/Local.xcconfig

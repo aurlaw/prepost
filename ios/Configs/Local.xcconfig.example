@@ -1,0 +1,4 @@
+// Copy to Local.xcconfig (gitignored) and fill in.
+DEVELOPMENT_TEAM = YOUR_TEAM_ID
+// Optional local override, e.g. for wrangler dev:
+// PREPOST_API_BASE_URL = http:/$()/<your-mac>.local:8787
