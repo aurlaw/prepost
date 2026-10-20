@@ -83,3 +83,5 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 ios/PrePost/Configs/Local.xcconfig
+worker/temp.env
+temp.env
