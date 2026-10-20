@@ -36,6 +36,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "45CDB6CF308814E500B5B4F1"
                BuildableName = "PrePostTests.xctest"
+               BlueprintName = "PrePostTests"
                ReferencedContainer = "container:PrePost.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -46,6 +47,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "45CDB6D9308814E500B5B4F1"
                BuildableName = "PrePostUITests.xctest"
+               BlueprintName = "PrePostUITests"
                ReferencedContainer = "container:PrePost.xcodeproj">
             </BuildableReference>
          </TestableReference>
