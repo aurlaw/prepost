@@ -12,7 +12,7 @@
       "layers" : [
         {
           "glass" : true,
-          "hidden" : false,
+          "hidden" : true,
           "image-name" : "appIcon_v1.png",
           "name" : "appIcon_v1"
         },
