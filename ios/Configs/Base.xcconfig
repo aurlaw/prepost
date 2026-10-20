@@ -4,3 +4,4 @@ IPHONEOS_DEPLOYMENT_TARGET = 26.0
 // Note: "//" starts a comment in xcconfig, so URLs are split with $()
 PREPOST_API_BASE_URL = https:/$()/prepost-api.aurlaw.dev
 #include? "Local.xcconfig"
+#include? "BuildNumber.xcconfig"
