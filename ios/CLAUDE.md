@@ -35,21 +35,60 @@ Claude Code may create, edit and move files under the synchronized folders `PreP
 
 ## Layout
 
-- `PrePost/App/`: app entry point and `AppConfig`.
-- `PrePost/Views/`: SwiftUI views.
-- `PrePost/Models/`: SwiftData models.
-- `PrePost/Services/`: API client, Keychain, upload queue.
+- `PrePost/App/`
+  - `PrePostApp.swift`: builds `AppConfig`, the on-disk `ModelContainer` and `AppEnvironment`. If config or the store fails, it shows `LaunchErrorView` instead of crashing.
+  - `AppConfig.swift`: validated `PrePostAPIBaseURL`.
+  - `AppEnvironment.swift`: an `@Observable @MainActor` holder for `AppConfig`, `TokenStore`, `APIClient` and `hasToken`, injected with `.environment(_:)`. `AppEnvironment.preview()` is backed by `InMemoryTokenStore`.
+  - `ModelContainer+PrePost.swift`: the schema, `prePostOnDisk()`, `prePostInMemory()` for tests, and `.preview`, which is seeded with lorem drafts.
+- `PrePost/Models/`: `Draft`, `DraftPhoto`, `Category`, and `ModelEnums.swift` (`DraftStatus`, `PhotoUploadState`, `PostKind`, `InstagramLimits`).
+- `PrePost/Services/`
+  - `TokenStore.swift`: the protocol, `KeychainTokenStore` and `InMemoryTokenStore`.
+  - `APIClient.swift` and `APIError.swift`.
+  - `DraftDeletion.swift`: the single place drafts are deleted. A2 adds the R2 cleanup here.
+- `PrePost/Views/`
+  - `RootView`: token gate, then `NavigationStack` → `DraftsListView`.
+  - `TokenEntryView` and `SettingsView`.
+  - `DraftsListView` and `DraftRowView`.
+  - `DraftEditorView`.
+  - `LaunchErrorView`.
 - `PrePost/Resources/`: asset catalog and app icon.
 - `PrePost/Info.plist` stays at the root of `PrePost/`. The `INFOPLIST_FILE` build setting and the folder's membership exception both point to it.
 - Don't use `.gitkeep` files to hold empty folders. The synchronized folder copies them into the app bundle, where they collide. Use a comment-only `.swift` placeholder instead.
 
+## Data model
+
+- **The SwiftData schema is complete as of A1:** `Draft`, `DraftPhoto` and `Category`. Later phases add behaviour, not fields. If a field really must change, plan the migration in that phase's brief.
+- **Store:** local only. Containers pass `cloudKitDatabase: .none` explicitly.
+- **Enum-backed fields are stored as raw strings** (`statusRaw`, `uploadStateRaw`), with typed computed accessors that fall back to a safe default (`.editing` or `.pending`) for unknown values. Add enum cases freely; never rename a raw value.
+- **Photo order:** relationship arrays are unordered, so order comes from `DraftPhoto.sortIndex`. Always read photos through `draft.orderedPhotos`.
+- **Delete rules:** `Draft.photos` cascades. `Category.drafts` nullifies, so deleting a category never deletes drafts.
+- **Editing:** every edit bumps `updatedAt` via `draft.touch()`. The editor's bindings do this.
+- **Deleting:** always go through `DraftDeletion.delete`. A new draft that is still empty (`isEmpty`) when its editor is popped is discarded automatically.
+- **Navigation:** value-based, by `Draft.ID` (a UUID). The UUID is also the W3 publish idempotency key.
+
+## API client
+
+- `APIClient` is a `final class` and `Sendable`, with immutable state only. Every endpoint builds an `APIRequest` and goes through `send(_:)` or `send(_:as:)`. New endpoints go in the `// MARK: - Endpoints` extension. A2 adds upload and delete there.
+- Requests get `Authorization: Bearer <token>` from the `TokenStore`, unless `isPublic` is set (only `/health`). If no token is saved, the client throws `.missingToken` before making any network call.
+- Error mapping:
+  - 2xx responses decode as JSON. For 204, use `send(_:)`, which returns nothing.
+  - 401 → `.unauthorized`.
+  - Other non-2xx → `.server(status:code:body:)`, where `code` is the Worker's `error` field, or `"unknown"` if the body isn't the envelope. Worker error codes stay `String`s, never an enum. `body` keeps the raw bytes so callers can decode extra fields.
+  - `URLError` → `.transport`.
+- Error messages (`LocalizedError`) are short and user-facing, and never include the token.
+- **Token storage:** a Keychain generic password with service `com.aurlaw.prepost.api` and account `bearer`, accessible `AfterFirstUnlockThisDeviceOnly`. The token is trimmed before saving, and empty tokens are rejected. Never log the token.
+- **Tests:** Keychain tests use a unique service per test and clean up afterwards. API tests use the `StubURLProtocol` session, in a `.serialized` suite.
+
 ## Conventions
 
 - Swift 6 strict concurrency, SwiftUI, Swift Testing. iOS 26 minimum, iPhone only. No third-party packages unless a brief says so.
-- The app target uses `MainActor` default isolation. Mark pure logic that tests call synchronously as `nonisolated`.
+- The app target uses `MainActor` default isolation. Mark pure logic and service types that tests or background code use as `nonisolated`. SwiftData models and views stay on the main actor, and tests that touch models are `@MainActor`.
+- `Category` can clash with an Objective-C type name in the test target. Write `PrePost.Category` there.
 - Test parsing and validation functions directly, not through `Bundle.main`.
-- Run the unit tests before declaring a task done. Use an iOS 27 simulator, because the test targets currently deploy to 27.0:
+- Tests and previews use lorem text and `example.com` hosts only. Build test tokens at runtime (`"test-" + "token"`).
+- Run the unit tests before declaring a task done:
   ```sh
   xcodebuild test -project PrePost.xcodeproj -scheme PrePost \
-    -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -only-testing:PrePostTests
+    -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:PrePostTests
   ```
+  If the run fails with "Application failed preflight checks", the simulator is busy, not the code. Run `xcrun simctl shutdown all` and retry.
